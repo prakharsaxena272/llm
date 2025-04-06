@@ -6,62 +6,52 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
 
-# ✅ Streamlit UI setup
-st.set_page_config(page_title="Indian Constitution Chatbot", layout="centered")
-st.title("🇮🇳 Indian Constitution RAG Chatbot")
-st.markdown("Ask any question about the Constitution of India, like **What is Article 370?**")
+st.set_page_config(page_title="Alternate Constitution Chatbot", layout="centered")
+st.title("📘 Indian Constitution Chatbot (Model Test)")
+st.markdown("Ask about the Constitution of India. This instance uses a **different model**.")
 
-# ✅ Initialize chat history in session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# ✅ Ensure ChromaDB is running
+# Connect to ChromaDB
 port_number = 8000
 chroma_client = chromadb.HttpClient(host="localhost", port=port_number)
 
-# ✅ Load Existing Collection
-collection_name = "constitution_index"
+# Load new collection
+collection_name = "constitution_index2"
 try:
     collection = chroma_client.get_collection(collection_name)
 except:
-    st.error(f"❌ ERROR: Collection '{collection_name}' not found. Please run `ingest.py` first.")
+    st.error(f"❌ Collection '{collection_name}' not found. Run `ingest2.py` first.")
     st.stop()
 
-# ✅ Load Vector Store & Embeddings
 vector_store = ChromaVectorStore(chroma_collection=collection)
-embed_model = OllamaEmbedding(model_name="mistral")
-
-# ✅ Load the index from local storage
-storage_dir = "storage"
+embed_model = OllamaEmbedding(model_name="llama2")  # 🔁 Change model here for testing
+storage_dir = "storage2"
 if not os.path.exists(storage_dir):
-    st.error(f"❌ ERROR: Storage directory '{storage_dir}' not found. Ensure indexing was completed.")
+    st.error("❌ Storage folder 'storage2' not found. Run `ingest2.py` first.")
     st.stop()
 
 storage_context = StorageContext.from_defaults(persist_dir=storage_dir, vector_store=vector_store)
 index = load_index_from_storage(storage_context, embed_model=embed_model)
-query_engine = index.as_query_engine(llm=Ollama(model="mistral"))
+query_engine = index.as_query_engine(llm=Ollama(model="llama2"))  # 🔁 Change model here too
 
-# ✅ Chat interface
 with st.chat_message("assistant"):
-    st.markdown("Hello! Ask me anything about the Constitution of India.")
+    st.markdown("Hi there! I'm your assistant for testing different LLMs on the Constitution.")
 
-# ✅ Display chat history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# ✅ Input box
 if prompt := st.chat_input("Your question..."):
-    # Store user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Compose prompt with pre-instruction
     pre_prompt = (
-        "You are a helpful assistant knowledgeable about the Constitution of India. "
-        "Respond accurately using constitutional content. If the section is not present, say so honestly.\n\n"
-        "User's Question:\n"
+        "You are a legal assistant focused only on the Indian Constitution. "
+        "Answer strictly based on the constitutional text. If the answer is unclear, say so.\n\n"
+        "Question:\n"
     )
     full_prompt = pre_prompt + prompt
 
